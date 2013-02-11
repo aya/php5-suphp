@@ -11,6 +11,9 @@
 #ifndef PHP_SUPHP_H
 #define PHP_SUPHP_H
 
+#define PHP_SUPHP_EXTNAME "suphp"
+#define PHP_SUPHP_EXTVER  "1.0"
+
 extern zend_module_entry suphp_module_entry;
 #define phpext_suphp_ptr &suphp_module_entry
 

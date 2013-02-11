@@ -7,7 +7,7 @@ INSTALL :
 1) copy the suphp.so in your php modules directory
 2) chown root the php executable
 3) chmod +s the php executable
-4) default configuration is : 
+4) default configuration is :
 	- enabled : true
 	- min_uid : 33
 	- use_effective : false
@@ -18,3 +18,14 @@ CONFIIGURATION :
 * min_uid : [integer] the minimim allowed UID. If trying to access a file with a lower UID, the request is aborted
 * use_effective : [boolean] use seteuid/setegid instead of setuid/setgid. Warning, this has serious implications : setuid cannot come back to another UID, so for fcgi mode, you should use_effective = true. But this has serious drawback : some low level file access only recognizes the real UID, and not the EUID (this is supposed to be a feature). So if fcgi => euid else => uid !
 * chown_uploads : [boolean] at the beginning of every request, the module checks for uploads, turn to root, chown the uploads to the proper UID, then only change the process UID
+
+COMPILING :
+(fast note debug)
+cd src
+phpize
+./configure --enable-suphp CFLAGS='-g -O0 -Wall'
+make
+cp modules/suphp.so /usr/lib/php5/201xxx/
+
+(to clean all)
+phpize --clean

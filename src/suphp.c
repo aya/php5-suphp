@@ -50,7 +50,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "php_suphp.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(suphp)
-static int le_suphp;
 
 zend_function_entry suphp_functions[] = {
 	{NULL, NULL, NULL}
@@ -60,7 +59,7 @@ zend_module_entry suphp_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
 #endif
-	"suphp",
+	PHP_SUPHP_EXTNAME,
 	suphp_functions,
 	PHP_MINIT(suphp),
 	PHP_MSHUTDOWN(suphp),
@@ -68,7 +67,7 @@ zend_module_entry suphp_module_entry = {
 	PHP_RSHUTDOWN(suphp),
 	PHP_MINFO(suphp),
 #if ZEND_MODULE_API_NO >= 20010901
-	"1.0", /* module version number */
+	PHP_SUPHP_EXTVER, /* module version number */
 #endif
 	STANDARD_MODULE_PROPERTIES
 };
@@ -104,10 +103,10 @@ int check_uploads(long st_uid)
 	ulong length;
 		
 	if( ht == NULL || zend_hash_num_elements(ht) == 0 )
-		return 0;
+		return SUCCESS;
 
 	if( setegid(0) != 0 || seteuid(0) != 0 )
-		return -1;
+		return FAILURE;
 
 	zend_hash_internal_pointer_reset(ht);
 	while( zend_hash_has_more_elements(ht) == SUCCESS )
@@ -116,25 +115,29 @@ int check_uploads(long st_uid)
 			continue;
 
 		if( chown(filename, st_uid, st_uid) != 0 )
-			return -1;
+			return FAILURE;
 
 		if( zend_hash_move_forward(ht) != SUCCESS )
                         break;
 	}
 	
-	return 0;
+	return SUCCESS;
 }
 
 int suphp()
 {
 	struct stat st;
 	char *filename = SG(request_info).path_translated;
+
+	// we are running php without a filename (like -i or -v)
+	if( filename == NULL )
+		return SUCCESS;
 	
 	if( stat(filename, &st) != 0 )
-		return -1;
+		return FAILURE;
 
 	if( st.st_uid < suphp_globals.global_min_uid )
-		return -1;
+		return FAILURE;
 
 	if( suphp_globals.global_chown_uploads == 1 )
 		check_uploads(st.st_uid);
@@ -142,23 +145,25 @@ int suphp()
 	if( suphp_globals.global_use_effective_uid == 1 )
 	{
 		if( setegid(st.st_uid) != 0 )
-			return -1;
+			return FAILURE;
 		if( seteuid(st.st_uid) != 0 )
-			return -1;
+			return FAILURE;
 	}
 	else
 	{
 		if( setgid(st.st_uid) != 0 )
-			return -1;
+			return FAILURE;
 		if( setuid(st.st_uid) != 0 )
-			return -1;
+			return FAILURE;
 	}
 
-	return 0;
+	return SUCCESS;
 }
 
 PHP_MINIT_FUNCTION(suphp)
 {
+	ZEND_INIT_MODULE_GLOBALS(suphp, php_suphp_init_globals, NULL);
+
 	REGISTER_INI_ENTRIES();
 	return SUCCESS;
 }
